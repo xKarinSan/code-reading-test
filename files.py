@@ -68,8 +68,8 @@ def scan_subfolders():
     Scans all the contents in the subfolder(s)
     """
     path = os.curdir
-    # path = "/Users/demonicaoi/Documents/GitHub/sensei-gigs/backend"
-    path = "/Users/demonicaoi/Documents/Experiments/mern-app/"
+    path = "/Users/demonicaoi/Documents/GitHub/sensei-gigs/backend"
+    # path = "/Users/demonicaoi/Documents/Experiments/mern-app/"
     programming_extensions = {
         ".py",
         ".js",
