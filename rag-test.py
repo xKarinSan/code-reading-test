@@ -87,6 +87,7 @@ def generate_readme_with_rag(vector_store, model):
 
     summaries = summarize_documents(filtered_docs, model)
     full_context = "\n".join(summaries)
+    print(full_context)
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are an expert software engineer who writes clean, production-ready README.md files for codebases."),
@@ -109,7 +110,7 @@ Use clean markdown formatting and keep it concise but informative.
     chain = prompt | model
     readme = chain.invoke({"context": full_context}).content
 
-    with open("tessting_README.md", "w") as f:
+    with open("testing_README.md", "w") as f:
         f.write(readme)
 
     print("[✅] README.md generated successfully with summarization.")
@@ -123,7 +124,7 @@ if __name__ == "__main__":
         embedding_function=embeddings,
         persist_directory="./vector_db",
     )
-
+    vector_store.reset_collection()
     # Change this to your desired repo path
     curr_path = "/Users/demonicaoi/Documents/MERN-Stack"
 
