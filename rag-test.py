@@ -45,11 +45,38 @@ def summarize_documents(docs, model, max_workers=6):
     """
     print(f"[⚡️] Summarizing {len(docs)} documents in parallel...")
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a software engineer summarizing source code for documentation purposes."),
-        ("user", "Summarize this file:\n\n{code}")
-    ])
-    chain = prompt | model
+    summarization_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        "You are a software engineer summarizing source code for internal documentation. "
+        "You need to retain key technical elements without formatting it for external readability."
+    ),
+    (
+        "user",
+        """Summarize the following file while keeping all important implementation details.
+
+        Include:
+        - All function and class definitions (keep signatures and bodies)
+        - Import statements
+        - Core logic (retain control flow and important operations)
+        - All environment variable usage (e.g., os.getenv, os.environ, process.env)
+
+        Ignore:
+        - Docstrings
+        - Markdown formatting
+        - Unnecessary comments
+
+        You may simplify some repeated logic, but do not omit anything important.
+
+        --- FILE START ---
+
+        {code}
+
+        --- FILE END ---"""
+            )
+        ])
+
+    chain = summarization_prompt | model
 
     summaries = []
 
