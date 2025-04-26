@@ -30,7 +30,7 @@ def clean_mermaid_output(output: str) -> str:
         output = output[:-3].strip()
     return output
 
-def generate_diagram_with_rag(vector_store, model):
+def generate_diagram_with_rag(vector_store, model,index):
     print("[📚] Retrieving all content from vector DB for summarization...")
     all_docs = vector_store.get(include=["documents", "metadatas"])
     all_texts = all_docs["documents"]
@@ -97,7 +97,7 @@ def generate_diagram_with_rag(vector_store, model):
     readme = chain.invoke({"context": full_context}).content
     readme = clean_mermaid_output(readme)
 
-    with open("testing_mermaid_diagram.md", "w") as f:
+    with open(f"mermaid_results/testing_mermaid_diagram_{str(index)}.md", "w") as f:
         f.write(readme)
 
     print("[✅] README.md generated successfully with summarization.")
@@ -113,17 +113,18 @@ if __name__ == "__main__":
         embedding_function=embeddings,
         persist_directory="./vector_db",
     )
-    vector_store.reset_collection()
     # Change this to your desired repo path
-    curr_path = "/Users/demonicaoi/Documents/MERN-Stack"
-    curr_path = "/Users/demonicaoi/Documents/beginner-projects"
+    # curr_path = "/Users/demonicaoi/Documents/MERN-Stack"
+    # curr_path = "/Users/demonicaoi/Documents/beginner-projects"
+    paths = [ 
+             "/Users/demonicaoi/Documents/MERN-Stack",
+             "/Users/demonicaoi/Documents/beginner-projects"
+            ]
+    for idx in range(len(paths)):
+        vector_store.reset_collection()
 
-    resultant_files = scan_subfolders(path=curr_path)
-    for file in resultant_files:
-        print("file: ", file)
-
-    read_files = read_contents(resultant_files)
-    documents, uuids = read_all_file_contents(read_files)
-    vector_store.add_documents(documents)
-    
-    generate_diagram_with_rag(vector_store, model)
+        resultant_files = scan_subfolders(path=paths[idx])
+        read_files = read_contents(resultant_files)
+        documents, uuids = read_all_file_contents(read_files)
+        vector_store.add_documents(documents)
+        generate_diagram_with_rag(vector_store, model,idx)
