@@ -9,7 +9,8 @@ from langchain_core.documents import Document
 from langchain.prompts.chat import ChatPromptTemplate
 
 from files import scan_subfolders, read_contents
-from rag_test import read_all_file_contents, summarize_documents
+from rag_test import read_and_summarize_all_files
+# read_all_file_contents, summarize_documents
 
 
 load_dotenv()
@@ -37,7 +38,34 @@ def generate_diagram_with_rag(vector_store, model,index):
     all_metas = all_docs["metadatas"]
 
     # Filter relevant files
-    key_extensions = {".py", ".js", ".ts", ".md", ".json", ".html", ".env"}
+    key_extensions = {
+        ".py",
+        ".js",
+        ".ts",
+        ".java",
+        ".cs",
+        ".cpp",
+        ".c",
+        ".go",
+        ".rb",
+        ".php",
+        ".rs",
+        ".kt",
+        ".swift",
+        ".scala",
+        ".sh",
+        ".pl",
+        ".dart",
+        ".html",
+        ".css",
+        ".json",
+        ".xml",
+        ".yml",
+        ".yaml",
+        ".sql",
+        ".jsx",
+        ".tsx",
+    }
     filtered_docs = [
         Document(page_content=text, metadata=meta)
         for text, meta in zip(all_texts, all_metas)
@@ -45,8 +73,7 @@ def generate_diagram_with_rag(vector_store, model,index):
     ]
 
     # Optional: reduce further to top 15 largest files
-    summaries = summarize_documents(filtered_docs, model)
-    full_context = "\n".join(summaries)
+    full_context = "\n".join(doc.page_content for doc in filtered_docs)
 
     architecture_prompt = ChatPromptTemplate.from_messages([
         (
@@ -118,13 +145,15 @@ if __name__ == "__main__":
     # curr_path = "/Users/demonicaoi/Documents/beginner-projects"
     paths = [ 
              "/Users/demonicaoi/Documents/MERN-Stack",
-             "/Users/demonicaoi/Documents/beginner-projects"
+             "/Users/demonicaoi/Documents/beginner-projects",
+             "/Users/demonicaoi/Documents/gitdiagram",
+             "/Users/demonicaoi/Documents/EcommerceApp"
             ]
     for idx in range(len(paths)):
         vector_store.reset_collection()
 
         resultant_files = scan_subfolders(path=paths[idx])
         read_files = read_contents(resultant_files)
-        documents, uuids = read_all_file_contents(read_files)
+        documents, uuids = read_and_summarize_all_files(read_files,model)
         vector_store.add_documents(documents)
         generate_diagram_with_rag(vector_store, model,idx)

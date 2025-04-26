@@ -56,8 +56,8 @@ def scan_subfolders(path):
     programming_extensions = {
         ".py", ".js", ".ts", ".java", ".cs", ".cpp", ".c", ".go", ".rb",
         ".php", ".rs", ".kt", ".swift", ".scala", ".sh", ".pl", ".dart",
-        ".html", ".css", ".json", ".xml", ".yml", ".yaml", ".sql", ".jsx",
-        ".tsx", ".vue", ".svelte"
+        ".html",".json", ".xml", ".yml", ".yaml", ".sql", ".jsx",
+        ".tsx", ".vue", ".svelte",".properties"
     }
 
     skip_filenames = {
@@ -89,6 +89,7 @@ def scan_subfolders(path):
                 continue
             if ext in programming_extensions and file not in skip_filenames:
                 res_files.append(str(file_path))
+                print(str(file_path))
 
     return res_files
 

@@ -11,87 +11,79 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain.prompts.chat import ChatPromptTemplate
 
-from files import scan_subfolders, read_contents
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
 model = ChatOpenAI(openai_api_key=api_key)
 
-def read_all_file_contents(read_files):
+def read_and_summarize_all_files(read_files, model, max_workers=6):
     """
-    Convert the files into LangChain Document objects.
+    Read files, summarize their content, and return summarized Document objects.
+    Each Document will have the summarized content as page_content and metadata attached.
     """
-    documents = []
-    id = 0
-    for file in read_files:
-        new_doc = Document(
-            page_content=file["contents"],
-            metadata={
-                "source": file["filePath"],
-                "extension": file["extension"],
-                "id": id,
-            },
-        )
-        id += 1
-        documents.append(new_doc)
-    uuids = [str(uuid4()) for _ in range(len(documents))]
-    return documents, uuids
-
-
-def summarize_documents(docs, model, max_workers=6):
-    """
-    Summarize each file concurrently to reduce total token usage and speed up processing.
-    """
-    print(f"[⚡️] Summarizing {len(docs)} documents in parallel...")
+    print(f"[⚡️] Reading and summarizing {len(read_files)} files in parallel...")
 
     summarization_prompt = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        "You are a software engineer summarizing source code for internal documentation. "
-        "You need to retain key technical elements without formatting it for external readability."
-    ),
-    (
-        "user",
-        """Summarize the following file while keeping all important implementation details.
+        (
+            "system",
+            "You are a software engineer summarizing source code for internal documentation. "
+            "You need to retain key technical elements without formatting it for internal use."
+        ),
+        (
+            "user",
+            """Summarize the following file while keeping all important implementation details.
 
-        Include:
-        - All function and class definitions (keep signatures and bodies)
-        - Import statements
-        - Core logic (retain control flow and important operations)
-        - All environment variable usage (e.g., os.getenv, os.environ, process.env)
+            Include:
+            - All function and class definitions (keep signatures and bodies)
+            - Import statements
+            - Core logic (retain control flow and important operations)
+            - All environment variable usage (e.g., os.getenv, os.environ, process.env)
 
-        Ignore:
-        - Docstrings
-        - Markdown formatting
-        - Unnecessary comments
+            Ignore:
+            - Docstrings
+            - Markdown formatting
+            - Unnecessary comments
 
-        You may simplify some repeated logic, but do not omit anything important.
+            You may simplify some repeated logic, but do not omit anything important.
 
-        --- FILE START ---
+            --- FILE START ---
 
-        {code}
+            {code}
 
-        --- FILE END ---"""
-            )
-        ])
+            --- FILE END ---"""
+        )
+    ])
 
     chain = summarization_prompt | model
 
-    summaries = []
+    summarized_documents = []
+    uuids = []
 
-    def summarize_doc(doc):
-        content = doc.page_content.strip()
+    def summarize_file(file_obj, file_id):
+        content = file_obj["contents"].strip()
         if len(content) <= 50:
             return None
         summary = chain.invoke({"code": content}).content
-        return f"File: {doc.metadata['source']}\n{summary}\n"
+        return Document(
+            page_content=f"File: {file_obj['filePath']}\n{summary.strip()}",
+            metadata={
+                "source": file_obj["filePath"],
+                "extension": file_obj["extension"],
+                "id": file_id,
+            }
+        )
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_doc = {executor.submit(summarize_doc, doc): doc for doc in docs}
-        for future in as_completed(future_to_doc):
+        future_to_file = {
+            executor.submit(summarize_file, file, idx): file
+            for idx, file in enumerate(read_files)
+        }
+        for future in as_completed(future_to_file):
             result = future.result()
             if result:
-                summaries.append(result)
+                summarized_documents.append(result)
+                uuids.append(str(uuid4()))
 
-    return summaries
+    print(f"[✅] Summarized {len(summarized_documents)} files successfully.")
+    return summarized_documents, uuids
