@@ -9,8 +9,7 @@ from langchain_core.documents import Document
 from langchain.prompts.chat import ChatPromptTemplate
 
 from files import scan_subfolders, read_contents
-from rag_test import read_and_summarize_all_files
-# read_all_file_contents, summarize_documents
+from rag_test import read_all_file_contents
 
 
 load_dotenv()
@@ -33,11 +32,11 @@ def clean_mermaid_output(output: str) -> str:
 
 def generate_diagram_with_rag(vector_store, model,index):
     print("[📚] Retrieving all content from vector DB for summarization...")
-    all_docs = vector_store.get(include=["documents", "metadatas"])
-    all_texts = all_docs["documents"]
-    all_metas = all_docs["metadatas"]
 
-    # Filter relevant files
+    results = vector_store.similarity_search(
+        query="What are the main components and their relationships in the codebase?",
+        k=50
+    )
     key_extensions = {
         ".py",
         ".js",
@@ -66,25 +65,22 @@ def generate_diagram_with_rag(vector_store, model,index):
         ".jsx",
         ".tsx",
     }
-    filtered_docs = [
-        Document(page_content=text, metadata=meta)
-        for text, meta in zip(all_texts, all_metas)
-        if Path(meta["source"]).suffix in key_extensions
-    ]
+    
+    filtered_docs = []
+    for doc in results:
+        metadata = doc.metadata
+        ext = metadata.get("extension", "").lower()
+        if ext and (ext.startswith(".") and ext in key_extensions) or (f".{ext}" in key_extensions):
+            filtered_docs.append(doc.page_content)
 
-    # Optional: reduce further to top 15 largest files
-    full_context = "\n".join(doc.page_content for doc in filtered_docs)
+    full_context = "\n".join(filtered_docs)
 
     architecture_prompt = ChatPromptTemplate.from_messages([
         (
             "system",
             "You are a senior software architect. Your job is to analyze codebases and generate accurate, high-level architecture diagrams using Mermaid."
-        ),
-        (
-            "user",
-            "Given the following codebase context:\n\n"
-            "{context}\n\n"
-            "Analyze the structure and purpose of the codebase. Determine its architectural style or design pattern if applicable (e.g., monolithic, client-server, layered, microservices, modular, or single-purpose).\n\n"
+            
+            "Analyze the structure and purpose of the following. Determine its architectural style or design pattern if applicable (e.g., monolithic, client-server, layered, microservices, modular, or single-purpose).\n\n"
             "Then, generate a **high-level architecture diagram** that shows the main components and how they interact or relate to each other.\n\n"
             "Abstract the system into logical components such as:\n"
             "- Frontend or UI layer (if any)\n"
@@ -116,6 +112,12 @@ def generate_diagram_with_rag(vector_store, model,index):
             "Additional guidelines:\n"
             "- If the context includes too much information, focus on the components most essential to the system’s functionality and architecture.\n"
             "- %% Only include high-level logical components, not file names."
+            
+        ),
+        (
+            "user",
+            "Given the following codebase:\n\n"
+            "{context}\n\n"
         )
     ])
 
@@ -144,16 +146,16 @@ if __name__ == "__main__":
     # curr_path = "/Users/demonicaoi/Documents/MERN-Stack"
     # curr_path = "/Users/demonicaoi/Documents/beginner-projects"
     paths = [ 
-             "/Users/demonicaoi/Documents/MERN-Stack",
-             "/Users/demonicaoi/Documents/beginner-projects",
-             "/Users/demonicaoi/Documents/gitdiagram",
-             "/Users/demonicaoi/Documents/EcommerceApp"
-            ]
+        "/Users/demonicaoi/Documents/MERN-Stack",
+        "/Users/demonicaoi/Documents/beginner-projects",
+        "/Users/demonicaoi/Documents/gitdiagram",
+        "/Users/demonicaoi/Documents/EcommerceApp"
+    ]
     for idx in range(len(paths)):
         vector_store.reset_collection()
 
         resultant_files = scan_subfolders(path=paths[idx])
         read_files = read_contents(resultant_files)
-        documents, uuids = read_and_summarize_all_files(read_files,model)
+        documents, uuids = read_all_file_contents(read_files)
         vector_store.add_documents(documents)
         generate_diagram_with_rag(vector_store, model,idx)

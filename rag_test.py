@@ -10,80 +10,42 @@ from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain.prompts.chat import ChatPromptTemplate
-
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
 model = ChatOpenAI(openai_api_key=api_key)
 
-def read_and_summarize_all_files(read_files, model, max_workers=6):
+def read_all_file_contents(read_files, chunk_size=500, chunk_overlap=75):
     """
-    Read files, summarize their content, and return summarized Document objects.
-    Each Document will have the summarized content as page_content and metadata attached.
+    Convert the files into LangChain Document objects.
     """
-    print(f"[⚡️] Reading and summarizing {len(read_files)} files in parallel...")
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", " ", ""],  # try to split cleanly: paragraphs > lines > words > chars
+    )
+    documents = []
+    id = 0
+    for file in read_files:
+        chunks = text_splitter.split_text(file["contents"])
+        # chunks = chunk_content(file["contents"], chunk_size)
+        for idx, chunk in enumerate(chunks):
+            new_doc = Document(
+                page_content=chunk,
+                metadata={
+                    "source": file["filePath"],
+                    "extension": file["extension"],
+                    "file_chunk_id": idx,
+                    "id": id,
+                },
+            )
+            id += 1
+            documents.append(new_doc)
+    uuids = [str(uuid4()) for _ in range(len(documents))]
+    return documents, uuids
 
-    summarization_prompt = ChatPromptTemplate.from_messages([
-        (
-            "system",
-            "You are a software engineer summarizing source code for internal documentation. "
-            "You need to retain key technical elements without formatting it for internal use."
-        ),
-        (
-            "user",
-            """Summarize the following file while keeping all important implementation details.
-
-            Include:
-            - All function and class definitions (keep signatures and bodies)
-            - Import statements
-            - Core logic (retain control flow and important operations)
-            - All environment variable usage (e.g., os.getenv, os.environ, process.env)
-
-            Ignore:
-            - Docstrings
-            - Markdown formatting
-            - Unnecessary comments
-
-            You may simplify some repeated logic, but do not omit anything important.
-
-            --- FILE START ---
-
-            {code}
-
-            --- FILE END ---"""
-        )
-    ])
-
-    chain = summarization_prompt | model
-
-    summarized_documents = []
-    uuids = []
-
-    def summarize_file(file_obj, file_id):
-        content = file_obj["contents"].strip()
-        if len(content) <= 50:
-            return None
-        summary = chain.invoke({"code": content}).content
-        return Document(
-            page_content=f"File: {file_obj['filePath']}\n{summary.strip()}",
-            metadata={
-                "source": file_obj["filePath"],
-                "extension": file_obj["extension"],
-                "id": file_id,
-            }
-        )
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_file = {
-            executor.submit(summarize_file, file, idx): file
-            for idx, file in enumerate(read_files)
-        }
-        for future in as_completed(future_to_file):
-            result = future.result()
-            if result:
-                summarized_documents.append(result)
-                uuids.append(str(uuid4()))
-
-    print(f"[✅] Summarized {len(summarized_documents)} files successfully.")
-    return summarized_documents, uuids
+# def chunk_content(content, chunk_size=1000):
+#     """Split content into chunks of chunk_size characters."""
+#     return [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
