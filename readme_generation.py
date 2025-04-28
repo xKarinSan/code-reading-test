@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain_core.documents import Document
 from langchain.prompts.chat import ChatPromptTemplate
 
 from files import scan_subfolders, read_contents
@@ -119,7 +118,7 @@ if __name__ == "__main__":
 
 
     paths = [ 
-        # "/Users/demonicaoi/Documents/MERN-Stack",
+        "/Users/demonicaoi/Documents/MERN-Stack",
         "/Users/demonicaoi/Documents/beginner-projects",
         "/Users/demonicaoi/Documents/gitdiagram",
         "/Users/demonicaoi/Documents/EcommerceApp"

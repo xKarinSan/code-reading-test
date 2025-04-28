@@ -142,9 +142,7 @@ if __name__ == "__main__":
         embedding_function=embeddings,
         persist_directory="./vector_db",
     )
-    # Change this to your desired repo path
-    # curr_path = "/Users/demonicaoi/Documents/MERN-Stack"
-    # curr_path = "/Users/demonicaoi/Documents/beginner-projects"
+
     paths = [ 
         "/Users/demonicaoi/Documents/MERN-Stack",
         "/Users/demonicaoi/Documents/beginner-projects",
