@@ -3,13 +3,9 @@ from pathlib import Path
 from uuid import uuid4
 
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
-from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from langchain.prompts.chat import ChatPromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 load_dotenv()
