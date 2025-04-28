@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
@@ -9,7 +8,7 @@ from langchain.prompts.chat import ChatPromptTemplate
 
 from files import scan_subfolders, read_contents
 from rag_test import read_all_file_contents
-
+from const import paths
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -19,9 +18,8 @@ model = ChatOpenAI(openai_api_key=api_key)
 def generate_readme_with_rag(vector_store, model,idx):
     print("[📚] Retrieving all content from vector DB for summarization...")
 
-
     results = vector_store.similarity_search(
-        query="What are the main components and their relationships in the codebase?",
+        query="Summarize the purpose, technologies, environment setup, and running instructions of the entire project.",
         k=50
     )
     
@@ -108,6 +106,7 @@ def generate_readme_with_rag(vector_store, model,idx):
 
 if __name__ == "__main__":
     print("[🔍] Scanning files...")
+    print(paths)
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     vector_store = Chroma(
@@ -116,13 +115,6 @@ if __name__ == "__main__":
         persist_directory="./vector_db",
     )
 
-
-    paths = [ 
-        "/Users/demonicaoi/Documents/MERN-Stack",
-        "/Users/demonicaoi/Documents/beginner-projects",
-        "/Users/demonicaoi/Documents/gitdiagram",
-        "/Users/demonicaoi/Documents/EcommerceApp"
-    ]
     for idx in range(len(paths)):
         vector_store.reset_collection()
         resultant_files = scan_subfolders(path=paths[idx])

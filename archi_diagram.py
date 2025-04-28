@@ -10,7 +10,7 @@ from langchain.prompts.chat import ChatPromptTemplate
 
 from files import scan_subfolders, read_contents
 from rag_test import read_all_file_contents
-
+from const import paths
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -143,12 +143,7 @@ if __name__ == "__main__":
         persist_directory="./vector_db",
     )
 
-    paths = [ 
-        "/Users/demonicaoi/Documents/MERN-Stack",
-        "/Users/demonicaoi/Documents/beginner-projects",
-        "/Users/demonicaoi/Documents/gitdiagram",
-        "/Users/demonicaoi/Documents/EcommerceApp"
-    ]
+
     for idx in range(len(paths)):
         vector_store.reset_collection()
 
