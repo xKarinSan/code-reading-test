@@ -12,6 +12,8 @@ from langchain.schema import BaseOutputParser
 from files import scan_subfolders, read_contents
 from templates import inline_doc_templates, user_template
 
+from const import paths
+
 class SimpleOutputParser(BaseOutputParser):
     def parse(self, text: str) -> str:
         return text.strip()
@@ -30,7 +32,9 @@ def process_file(file_path: str, code: str, extension: str):
     
     try:
         result = chain.invoke({"code": code, "language": extension})
-        with open(file_path, "w", encoding="utf-8") as f:
+        full_path = "./doc_results/"+file_path
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w", encoding="utf-8") as f:
             print("result")
             f.write(result)
         print(f"[✅] Finished: {file_path}")
@@ -51,9 +55,11 @@ if __name__ == "__main__":
     print("[🔍] Scanning files...")
     start = time.time()
 
-    resultant_files = scan_subfolders()
-    read_files = read_contents(resultant_files)
-    print(f"[📄] Found {len(read_files)} files to document.\n")
-    asyncio.run(run_all(read_files))
-    print(f"\n[🎉] Documentation completed in {time.time() - start:.2f}s")
+    for idx in range(len(paths)):
+
+        resultant_files = scan_subfolders(path=paths[idx])
+        read_files = read_contents(resultant_files)
+        print(f"[📄] Found {len(read_files)} files to document.\n")
+        asyncio.run(run_all(read_files))
+        print(f"\n[🎉] Documentation completed in {time.time() - start:.2f}s")
     
